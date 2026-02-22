@@ -24,7 +24,7 @@ Both require the `moderators` or `meetup-hosts` role.
 
 - Python 3.10+
 - A Discord bot token with the **Message Content** intent enabled
-- A GitHub personal access token with `repo` scope on `BurbSec/burbsec.github.io`
+- GitHub credentials — GitHub App (recommended) or a fine-grained PAT
 
 ### Install
 
@@ -38,12 +38,38 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` with your Discord token and one of the two GitHub auth options below.
 
-```
-DISCORD_BOT_TOKEN=your_discord_bot_token_here
-GITHUB_TOKEN=your_github_pat_here
-```
+### GitHub App setup (recommended)
+
+A GitHub App is preferred over a PAT: it isn't tied to any individual user account, and its tokens are short-lived and auto-rotated.
+
+1. Go to **GitHub → Settings → Developer settings → GitHub Apps → New GitHub App**
+2. Name it (e.g. `pixbot`), set the homepage URL to anything
+3. Disable the webhook (uncheck **Active**)
+4. Under **Repository permissions**, set:
+   - **Contents** → Read and write
+   - **Pull requests** → Read and write
+5. Click **Create GitHub App**, then note the **App ID**
+6. Scroll to **Private keys** → **Generate a private key** — save the downloaded `.pem` file
+7. Click **Install App** → install it on the `BurbSec` org, scoped to `burbsec.github.io` only
+8. Add to `.env`:
+   ```
+   GITHUB_APP_ID=123456
+   GITHUB_APP_PRIVATE_KEY_PATH=/path/to/pixbot.private-key.pem
+   ```
+
+### Fine-grained PAT setup (simpler alternative)
+
+1. Go to **GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens**
+2. Set **Resource owner** to `BurbSec`, restrict to the `burbsec.github.io` repository
+3. Permissions: **Contents** (read/write), **Pull requests** (read/write), **Metadata** (read)
+4. Add to `.env`:
+   ```
+   GITHUB_TOKEN=your_token_here
+   ```
+
+If both are set, App auth takes precedence.
 
 ### Run
 

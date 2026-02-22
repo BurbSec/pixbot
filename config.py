@@ -1,6 +1,12 @@
 import os
 
 TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
+
+# GitHub App auth (preferred)
+GITHUB_APP_ID = os.environ.get('GITHUB_APP_ID')
+GITHUB_APP_PRIVATE_KEY_PATH = os.environ.get('GITHUB_APP_PRIVATE_KEY_PATH')
+
+# Fallback: personal access token
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
 
 ALLOWED_ROLES = ['moderators', 'meetup-hosts']

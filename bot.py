@@ -24,10 +24,24 @@ bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
 
+def get_github_client():
+    """Return an authenticated Github instance, preferring App auth over PAT."""
+    if config.GITHUB_APP_ID and config.GITHUB_APP_PRIVATE_KEY_PATH:
+        from github import Auth, GithubIntegration
+        with open(config.GITHUB_APP_PRIVATE_KEY_PATH) as f:
+            private_key = f.read()
+        auth = Auth.AppAuth(int(config.GITHUB_APP_ID), private_key)
+        gi = GithubIntegration(auth=auth)
+        owner, repo_name = config.GITHUB_REPO.split('/')
+        installation = gi.get_repo_installation(owner, repo_name)
+        return gi.get_github_for_installation(installation.id)
+    return Github(config.GITHUB_TOKEN)
+
+
 def get_valid_locations():
     """Fetch valid location directories from GitHub. Falls back to config on error."""
     try:
-        repo = Github(config.GITHUB_TOKEN).get_repo(config.GITHUB_REPO)
+        repo = get_github_client().get_repo(config.GITHUB_REPO)
         contents = repo.get_contents(config.IMAGES_BASE_PATH, ref=config.GITHUB_BASE_BRANCH)
         locations = {item.name for item in contents if item.type == 'dir'}
         if locations:
@@ -122,8 +136,7 @@ def create_github_pr(location, images_data, discord_msg):
     images_data: list of (filename, webp_bytes, metadata)
     Returns (pr_url, branch_name)
     """
-    gh = Github(config.GITHUB_TOKEN)
-    repo = gh.get_repo(config.GITHUB_REPO)
+    repo = get_github_client().get_repo(config.GITHUB_REPO)
 
     base_sha = repo.get_branch(config.GITHUB_BASE_BRANCH).commit.sha
     branch_name = f'pixbot/{location}-{datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")}'
@@ -327,6 +340,10 @@ async def on_message(message):
 if __name__ == '__main__':
     if not config.TOKEN:
         raise RuntimeError('DISCORD_BOT_TOKEN is not set.')
-    if not config.GITHUB_TOKEN:
-        raise RuntimeError('GITHUB_TOKEN is not set.')
+    app_auth = config.GITHUB_APP_ID and config.GITHUB_APP_PRIVATE_KEY_PATH
+    if not app_auth and not config.GITHUB_TOKEN:
+        raise RuntimeError(
+            'No GitHub credentials configured. '
+            'Set GITHUB_APP_ID + GITHUB_APP_PRIVATE_KEY_PATH, or GITHUB_TOKEN.'
+        )
     bot.run(config.TOKEN)
