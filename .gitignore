@@ -138,6 +138,9 @@ celerybeat.pid
 .env
 .envrc
 .venv
+
+# GitHub App private key
+*.pem
 env/
 venv/
 ENV/
