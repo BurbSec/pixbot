@@ -339,7 +339,7 @@ async def on_message(message):
 
 if __name__ == '__main__':
     if not config.TOKEN:
-        raise RuntimeError('DISCORD_BOT_TOKEN is not set.')
+        raise RuntimeError('PIXBOT_DISCORD_TOKEN is not set.')
     app_auth = config.GITHUB_APP_ID and config.GITHUB_APP_PRIVATE_KEY_PATH
     if not app_auth and not config.GITHUB_TOKEN:
         raise RuntimeError(

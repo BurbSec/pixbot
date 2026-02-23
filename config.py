@@ -1,6 +1,6 @@
 import os
 
-TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
+TOKEN = os.environ.get('PIXBOT_DISCORD_TOKEN')
 
 # GitHub App auth (preferred)
 GITHUB_APP_ID = os.environ.get('GITHUB_APP_ID')
