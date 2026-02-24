@@ -320,7 +320,7 @@ async def on_message(message):
 
     # Create PR
     try:
-        pr_url, branch_name = create_github_pr(location, images_data, message)
+        create_github_pr(location, images_data, message)
     except GithubException as e:
         await status_msg.edit(content=f'GitHub error: {e.data.get("message", str(e))}')
         return
@@ -328,13 +328,8 @@ async def on_message(message):
         await status_msg.edit(content=f'Unexpected error creating PR: {e}')
         return
 
-    await status_msg.edit(
-        content=(
-            f'✅ PR created for **{location}**:\n'
-            f'{pr_url}\n\n'
-            f'{n} image(s) processed — branch `{branch_name}`'
-        )
-    )
+    await status_msg.delete()
+    await message.add_reaction('👍')
 
 
 if __name__ == '__main__':

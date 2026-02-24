@@ -8,6 +8,7 @@ Discord bot for BurbSec that lets trusted members submit IRL meetup photos to th
 2. They mention the bot with a location: `@pixbot northwest`
 3. pixbot downloads the image(s), resizes to ≤ 3840×2160 if needed, and converts to WebP
 4. A pull request is opened on `BurbSec/burbsec.github.io` adding the file(s) to `static/images/irl/<location>/`
+5. The bot reacts to the user's message with 👍
 
 ## Commands
 
@@ -16,7 +17,7 @@ Discord bot for BurbSec that lets trusted members submit IRL meetup photos to th
 | `@pixbot <location>` | Reply to a message with images to submit them |
 | `/help` | Show usage instructions and valid locations |
 
-Both require the `moderators` or `meetup-hosts` role.
+Both require the `moderators` or `Meetup Hosts` role.
 
 ## Setup
 
@@ -34,11 +35,11 @@ pip install -r requirements.txt
 
 ### Configure
 
-```bash
-cp .env.example .env
-```
+The bot reads the following environment variables. Set them however suits your environment — `/etc/environment`, a `.env` file (see `.env.example`), a secrets manager, or any other method.
 
-Edit `.env` with your Discord token and one of the two GitHub auth options below.
+Required:
+- `PIXBOT_DISCORD_TOKEN`
+- `GITHUB_APP_ID` + `GITHUB_APP_PRIVATE_KEY_PATH` **or** `GITHUB_TOKEN` (see below)
 
 ### GitHub App setup (recommended)
 
@@ -53,7 +54,7 @@ A GitHub App is preferred over a PAT: it isn't tied to any individual user accou
 5. Click **Create GitHub App**, then note the **App ID**
 6. Scroll to **Private keys** → **Generate a private key** — save the downloaded `.pem` file
 7. Click **Install App** → install it on the `BurbSec` org, scoped to `burbsec.github.io` only
-8. Add to `.env`:
+8. Set:
    ```
    GITHUB_APP_ID=123456
    GITHUB_APP_PRIVATE_KEY_PATH=/path/to/pixbot.private-key.pem
@@ -64,7 +65,7 @@ A GitHub App is preferred over a PAT: it isn't tied to any individual user accou
 1. Go to **GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens**
 2. Set **Resource owner** to `BurbSec`, restrict to the `burbsec.github.io` repository
 3. Permissions: **Contents** (read/write), **Pull requests** (read/write), **Metadata** (read)
-4. Add to `.env`:
+4. Set:
    ```
    GITHUB_TOKEN=your_token_here
    ```
@@ -83,7 +84,7 @@ All tunables are in `config.py`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ALLOWED_ROLES` | `['moderators', 'meetup-hosts']` | Discord role names that can use the bot |
+| `ALLOWED_ROLES` | `['moderators', 'Meetup Hosts']` | Discord role names that can use the bot |
 | `GITHUB_REPO` | `BurbSec/burbsec.github.io` | Target repository |
 | `IMAGES_BASE_PATH` | `static/images/irl` | Base path for images in the repo |
 | `GITHUB_BASE_BRANCH` | `main` | Branch PRs are opened against |
@@ -97,7 +98,7 @@ When creating the bot in the [Discord Developer Portal](https://discord.com/deve
 
 - Under **Bot → Privileged Gateway Intents**, enable **Message Content Intent**
 - Under **OAuth2 → URL Generator**, grant the `bot` and `applications.commands` scopes
-- Required bot permissions: `Read Messages/View Channels`, `Send Messages`, `Read Message History`
+- Required bot permissions: `Read Messages/View Channels`, `Send Messages`, `Read Message History`, `Add Reactions`
 
 ## Image processing
 

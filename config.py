@@ -9,7 +9,7 @@ GITHUB_APP_PRIVATE_KEY_PATH = os.environ.get('GITHUB_APP_PRIVATE_KEY_PATH')
 # Fallback: personal access token
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
 
-ALLOWED_ROLES = ['moderators', 'meetup-hosts']
+ALLOWED_ROLES = ['moderators', 'Meetup Hosts']
 
 GITHUB_REPO = 'BurbSec/burbsec.github.io'
 IMAGES_BASE_PATH = 'static/images/irl'
