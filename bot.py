@@ -197,7 +197,7 @@ async def help_command(interaction: discord.Interaction):
             '1. Find a message that contains the photo(s) you want to submit.\n'
             '2. **Reply** to that message.\n'
             '3. In your reply, mention the bot and include a location:\n'
-            '   > `@pixbot northwest`\n'
+            '   > `@pixbot pilsen`\n'
             '4. The bot will confirm once a PR has been opened.'
         ),
         inline=False,
