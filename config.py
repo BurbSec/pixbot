@@ -18,5 +18,5 @@ GITHUB_BASE_BRANCH = 'main'
 # Fallback if GitHub API unavailable at startup
 FALLBACK_LOCATIONS = [
     'cigarsec', 'east', 'galway', 'lasvegas', 'mpls',
-    'north', 'pilsen', 'prime', 'south', 'southeast', 'west'
+    'north', 'pilsen', 'prime', 'south', 'southbend', 'west'
 ]
