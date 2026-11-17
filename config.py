@@ -15,6 +15,11 @@ GITHUB_REPO = 'BurbSec/burbsec.github.io'
 IMAGES_BASE_PATH = 'static/images/irl'
 GITHUB_BASE_BRANCH = 'main'
 
+# Gallery limits and image output
+MAX_PHOTOS_PER_LOCATION = 20
+MAX_LONG_EDGE = 2048
+WEBP_QUALITY = 80
+
 # Fallback if GitHub API unavailable at startup
 FALLBACK_LOCATIONS = [
     'cigarsec', 'east', 'galway', 'lasvegas', 'mke', 'mpls',

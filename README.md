@@ -6,9 +6,10 @@ Discord bot for BurbSec that lets trusted members submit IRL meetup photos to th
 
 1. A user with an allowed role replies to a Discord message containing photo(s)
 2. They mention the bot with a location: `@pixbot pilsen`
-3. pixbot downloads the image(s), resizes to ≤ 3840×2160 if needed, and converts to WebP
+3. pixbot downloads the image(s), resizes to long edge ≤ 2048px if needed, and converts to WebP
 4. A pull request is opened on `BurbSec/burbsec.github.io` adding the file(s) to `static/images/irl/<location>/`
 5. The bot reacts to the user's message with 👍
+6. Each location keeps at most 20 photos; the oldest (by date added) are deleted in the same PR
 
 ## Commands
 
@@ -103,8 +104,8 @@ When creating the bot in the [Discord Developer Portal](https://discord.com/deve
 ## Image processing
 
 - Accepts any image format Discord supports (JPEG, PNG, GIF, HEIC, etc.)
-- Images larger than 3840×2160 are scaled down proportionally using Lanczos resampling
-- All images are saved as WebP at quality 90
+- Images are scaled so the long edge is ≤ 2048px (Lanczos), EXIF rotation applied, metadata (incl. GPS) stripped
+- All images are saved as WebP at quality 80
 - Multiple images in a single message are bundled into one PR on one branch
 
 ## Branch naming
