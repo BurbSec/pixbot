@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import aiohttp
 import discord
 from discord import app_commands
-from PIL import Image
+from PIL import Image, ImageOps
 from github import Github, GithubException
 
 import config
@@ -58,6 +58,9 @@ def format_locations(locations):
 def process_image(image_bytes):
     """Resize if above 4K, convert to WebP. Returns (webp_bytes, metadata dict)."""
     img = Image.open(io.BytesIO(image_bytes))
+    # Apply EXIF orientation (phones store portrait shots rotated) before the
+    # metadata is dropped on save, which also strips GPS/location data.
+    img = ImageOps.exif_transpose(img)
 
     # Convert palette/transparency modes for WebP compatibility
     if img.mode in ('P', 'RGBA'):
@@ -68,14 +71,14 @@ def process_image(image_bytes):
     original_dims = (img.width, img.height)
     original_size = len(image_bytes)
 
-    MAX_W, MAX_H = 3840, 2160
-    if img.width > MAX_W or img.height > MAX_H:
-        img.thumbnail((MAX_W, MAX_H), Image.LANCZOS)
+    # Cap the long edge so portrait and landscape shots shrink equally.
+    if max(img.width, img.height) > config.MAX_LONG_EDGE:
+        img.thumbnail((config.MAX_LONG_EDGE, config.MAX_LONG_EDGE), Image.LANCZOS)
 
     final_dims = (img.width, img.height)
 
     out = io.BytesIO()
-    img.save(out, format='WEBP', quality=90)
+    img.save(out, format='WEBP', quality=config.WEBP_QUALITY, method=6)
     webp_bytes = out.getvalue()
 
     metadata = {
@@ -98,7 +101,32 @@ def format_size(nbytes):
     return f'{mb:.1f} MB'
 
 
-def build_pr_body(location, images_data, discord_msg):
+def find_rolloff(repo, location, incoming_count):
+    """Return existing ContentFiles to delete so the folder stays <= MAX_PHOTOS_PER_LOCATION
+    after adding `incoming_count` files. Oldest (by last commit date) go first."""
+    try:
+        existing = [
+            c for c in repo.get_contents(
+                f'{config.IMAGES_BASE_PATH}/{location}', ref=config.GITHUB_BASE_BRANCH
+            ) if c.type == 'file' and c.name.lower().endswith(('.webp', '.jpg', '.jpeg', '.png'))
+        ]
+    except GithubException:
+        return []
+    excess = len(existing) + incoming_count - config.MAX_PHOTOS_PER_LOCATION
+    if excess <= 0:
+        return []
+
+    def added_at(c):
+        commits = repo.get_commits(path=c.path, sha=config.GITHUB_BASE_BRANCH)
+        # Oldest commit touching the file = when it was added; first page is newest-first
+        # so take the last item of the (short) history.
+        return list(commits)[-1].commit.committer.date
+
+    dated = sorted(existing, key=lambda c: (added_at(c), c.name))
+    return dated[:excess]
+
+
+def build_pr_body(location, images_data, discord_msg, removed=()):
     date_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
     message_link = (
         f'https://discord.com/channels/{discord_msg.guild.id}/'
@@ -115,6 +143,12 @@ def build_pr_body(location, images_data, discord_msg):
         )
 
     table = '\n'.join(rows)
+    removed_section = ''
+    if removed:
+        removed_section = (
+            f'### Rolled off (gallery max {config.MAX_PHOTOS_PER_LOCATION})\n'
+            + '\n'.join(f'- {c.name}' for c in removed) + '\n\n'
+        )
 
     return (
         f'## New IRL Photo(s) — {location}\n\n'
@@ -124,6 +158,7 @@ def build_pr_body(location, images_data, discord_msg):
         f'| File | Original | Final | Size |\n'
         f'|------|----------|-------|------|\n'
         f'{table}\n\n'
+        f'{removed_section}'
         f'### Source\n'
         f'Discord message: {message_link}\n\n'
         f'---\n'
@@ -142,6 +177,9 @@ def create_github_pr(location, images_data, discord_msg):
     branch_name = f'pixbot/{location}-{datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")}'
     repo.create_git_ref(ref=f'refs/heads/{branch_name}', sha=base_sha)
 
+    images_data = images_data[-config.MAX_PHOTOS_PER_LOCATION:]
+    removed = find_rolloff(repo, location, len(images_data))
+
     for filename, webp_bytes, _meta in images_data:
         path = f'{config.IMAGES_BASE_PATH}/{location}/{filename}'
         repo.create_file(
@@ -151,7 +189,15 @@ def create_github_pr(location, images_data, discord_msg):
             branch=branch_name,
         )
 
-    pr_body = build_pr_body(location, images_data, discord_msg)
+    for old in removed:
+        repo.delete_file(
+            path=old.path,
+            message=f'[pixbot] Roll off {old.name} from {location}',
+            sha=old.sha,
+            branch=branch_name,
+        )
+
+    pr_body = build_pr_body(location, images_data, discord_msg, removed)
     pr = repo.create_pull(
         title=f'[pixbot] Add IRL photo(s) to {location}',
         body=pr_body,
@@ -213,8 +259,9 @@ async def help_command(interaction: discord.Interaction):
         name='What happens to the image',
         value=(
             '• Downloaded from Discord\n'
-            '• Resized to ≤ 3840×2160 if larger (aspect ratio preserved)\n'
-            '• Converted to WebP at quality 90\n'
+            '• Resized so the long edge is ≤ 2048px (aspect ratio preserved)\n'
+            '• Converted to WebP at quality 80, metadata stripped\n'
+            f'• Each gallery keeps the newest {config.MAX_PHOTOS_PER_LOCATION}; older photos roll off in the same PR\n'
             '• Committed to `static/images/irl/<location>/` on a new branch\n'
             '• A pull request is opened on `BurbSec/burbsec.github.io`'
         ),
